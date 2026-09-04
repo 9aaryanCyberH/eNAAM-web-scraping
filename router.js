@@ -1,14 +1,109 @@
-import express from 'express';
-import fs from 'fs';
+import express from "express";
+import fs from "fs";
 
 const router = express.Router();
+
+const DATA_FILE = "./enam_price_data.json";
+
+// ================= HOME =================
 
 router.get("/", (req, res) => {
     return res.json({
         success: true,
-        message: "Welcome to the GST Rates API"
+        message: "Welcome to the Mandi-Mitra API"
     });
 });
+
+// ================= GET STATES =================
+
+router.get("/states", (req, res) => {
+    try {
+        const fileData = fs.readFileSync(
+            DATA_FILE,
+            "utf-8"
+        );
+
+        const enamdata = JSON.parse(fileData);
+
+        const states = [
+            ...new Set(
+                enamdata
+                    .map((item) => item.State)
+                    .filter((state) => state && state.trim())
+            )
+        ].sort();
+
+        return res.json({
+            success: true,
+            count: states.length,
+            data: states
+        });
+
+    } catch (error) {
+        console.error("States API error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to load states."
+        });
+    }
+});
+
+// ================= GET COMMODITIES =================
+
+router.get("/commodities", (req, res) => {
+    try {
+        const { state } = req.query;
+
+        if (!state) {
+            return res.status(400).json({
+                success: false,
+                message: "State is required."
+            });
+        }
+
+        const fileData = fs.readFileSync(
+            DATA_FILE,
+            "utf-8"
+        );
+
+        const enamdata = JSON.parse(fileData);
+
+        const commodities = [
+            ...new Set(
+                enamdata
+                    .filter(
+                        (item) =>
+                            item.State &&
+                            item.State.toLowerCase() ===
+                                state.toLowerCase()
+                    )
+                    .map((item) => item.Commodity)
+                    .filter(
+                        (commodity) =>
+                            commodity &&
+                            commodity.trim()
+                    )
+            )
+        ].sort();
+
+        return res.json({
+            success: true,
+            count: commodities.length,
+            data: commodities
+        });
+
+    } catch (error) {
+        console.error("Commodities API error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to load commodities."
+        });
+    }
+});
+
+// ================= GET MANDI DATA =================
 
 router.post("/getdata", async (req, res) => {
     try {
@@ -17,24 +112,26 @@ router.post("/getdata", async (req, res) => {
         if (!state || !commodity) {
             return res.status(400).json({
                 success: false,
-                message: "Both 'state' and 'commodity' are required"
+                message:
+                    "Both 'state' and 'commodity' are required"
             });
         }
 
-        // Read the latest JSON file every time the API is called
         const fileData = fs.readFileSync(
-            './enam_price_data.json',
-            'utf-8'
+            DATA_FILE,
+            "utf-8"
         );
 
         const enamdata = JSON.parse(fileData);
 
-        // Filter data
-        const filteredData = enamdata.filter(item =>
-            item.State &&
-            item.Commodity &&
-            item.State.toLowerCase() === state.toLowerCase() &&
-            item.Commodity.toLowerCase().includes(commodity.toLowerCase())
+        const filteredData = enamdata.filter(
+            (item) =>
+                item.State &&
+                item.Commodity &&
+                item.State.toLowerCase() ===
+                    state.toLowerCase() &&
+                item.Commodity.toLowerCase() ===
+                    commodity.toLowerCase()
         );
 
         return res.json({
@@ -44,11 +141,13 @@ router.post("/getdata", async (req, res) => {
         });
 
     } catch (error) {
-        console.error('API error:', error);
+        console.error("API error:", error);
 
         return res.status(500).json({
             success: false,
-            message: error.message || "An error occurred while fetching data"
+            message:
+                error.message ||
+                "An error occurred while fetching data"
         });
     }
 });
