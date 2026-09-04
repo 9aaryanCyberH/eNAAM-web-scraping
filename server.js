@@ -1,7 +1,7 @@
 import app from "./app.js";
 import { updateMandiData } from "./index.js";
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Update data immediately when server starts
 await updateMandiData();
@@ -13,7 +13,10 @@ setInterval(async () => {
     try {
         await updateMandiData();
     } catch (error) {
-        console.error("❌ Automatic update failed:", error.message);
+        console.error(
+            "❌ Automatic update failed:",
+            error.message
+        );
     }
 }, 24 * 60 * 60 * 1000);
 
