@@ -1,5 +1,5 @@
 import express from 'express';
-import enamdata from './enam_price_data.json' with { type: 'json' };
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -21,7 +21,18 @@ router.post("/getdata", async (req, res) => {
             });
         }
 
+        // Read the latest JSON file every time the API is called
+        const fileData = fs.readFileSync(
+            './enam_price_data.json',
+            'utf-8'
+        );
+
+        const enamdata = JSON.parse(fileData);
+
+        // Filter data
         const filteredData = enamdata.filter(item =>
+            item.State &&
+            item.Commodity &&
             item.State.toLowerCase() === state.toLowerCase() &&
             item.Commodity.toLowerCase().includes(commodity.toLowerCase())
         );
@@ -34,6 +45,7 @@ router.post("/getdata", async (req, res) => {
 
     } catch (error) {
         console.error('API error:', error);
+
         return res.status(500).json({
             success: false,
             message: error.message || "An error occurred while fetching data"

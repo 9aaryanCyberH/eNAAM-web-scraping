@@ -1,86 +1,178 @@
-import puppeteer from 'puppeteer';
+import fs from "fs";
+import dotenv from "dotenv";
 
-const browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null
-});
+dotenv.config();
 
-try {
+const API_KEY = process.env.DATA_GOV_API_KEY;
 
-    const page = await browser.newPage();
+const RESOURCE_ID =
+    "9ef84268-d588-465a-a308-a864a43d0070";
 
-    await page.goto(
-        'https://enam.gov.in/dashboard/live_price',
-        {
-            waitUntil: 'networkidle2',
-            timeout: 60000
-        }
-    );
+const API_URL =
+    `https://api.data.gov.in/resource/${RESOURCE_ID}`;
 
-    console.log("Page loaded.");
+const LIMIT = 1000;
 
-    await new Promise(resolve =>
-        setTimeout(resolve, 5000)
-    );
+async function fetchAllRecords() {
 
-    // Get cookies
-    const cookies = await page.cookies();
+    let allRecords = [];
+    let offset = 0;
 
-    console.log("\n========== COOKIES ==========\n");
+    while (true) {
 
-    console.log(
-        JSON.stringify(cookies, null, 2)
-    );
-
-    // Get the request using browser fetch
-    const result = await page.evaluate(async () => {
-
-        const response = await fetch(
-            '/Liveprice_ctrl/trade_data_list',
-            {
-                method: 'POST',
-
-                headers: {
-                    'Content-Type':
-                        'application/x-www-form-urlencoded; charset=UTF-8',
-
-                    'X-Requested-With':
-                        'XMLHttpRequest'
-                },
-
-                body:
-                    'language=en' +
-                    '&stateName=--+All+--' +
-                    '&fromDate=2026-09-04' +
-                    '&toDate=2026-09-04'
-            }
+        console.log(
+            `Fetching records ${offset + 1} to ${offset + LIMIT}...`
         );
 
-        return {
-            status: response.status,
-            statusText: response.statusText,
-            body: await response.text()
-        };
+        const url = new URL(API_URL);
 
-    });
+        url.searchParams.set("api-key", API_KEY);
+        url.searchParams.set("format", "json");
+        url.searchParams.set("limit", LIMIT);
+        url.searchParams.set("offset", offset);
 
-    console.log(
-        "\n========== API RESULT ==========\n"
-    );
+        const response = await fetch(url);
 
-    console.log(
-        JSON.stringify(result, null, 2)
-    );
+        if (!response.ok) {
 
-} catch (error) {
+            throw new Error(
+                `API Error: ${response.status} ${response.statusText}`
+            );
+
+        }
+
+        const result = await response.json();
+
+        const records = result.records || [];
+
+        console.log(
+            `Received ${records.length} records`
+        );
+
+        allRecords.push(...records);
+
+        // Stop when the API gives fewer records
+        // than our requested limit
+
+        if (records.length < LIMIT) {
+            break;
+        }
+
+        offset += LIMIT;
+    }
+
+    return allRecords;
+}
+
+
+async function getautomated() {
+
+    try {
+
+        if (!API_KEY) {
+
+            throw new Error(
+                "DATA_GOV_API_KEY is missing from .env"
+            );
+
+        }
+
+        console.log(
+            "================================="
+        );
+
+        console.log(
+            "e-NAM MANDI DATA SCRAPER"
+        );
+
+        console.log(
+            "================================="
+        );
+
+        const records =
+            await fetchAllRecords();
+
+        console.log(
+            `\nTotal records received: ${records.length}`
+        );
+
+        if (records.length === 0) {
+
+            throw new Error(
+                "No records received from data.gov.in"
+            );
+
+        }
+
+        // Convert API data into your existing format
+
+        const tableData = records.map(item => ({
+
+            "State":
+                item.state || "",
+
+            "APMC's":
+                item.market || "",
+
+            "Commodity":
+                item.commodity || "",
+
+            "Min Price":
+                String(
+                    item.min_price ?? ""
+                ),
+
+            "Modal Price":
+                String(
+                    item.modal_price ?? ""
+                ),
+
+            "Max Price":
+                String(
+                    item.max_price ?? ""
+                )
+
+        }));
+
+        // Save the complete dataset
+
+        fs.writeFileSync(
+
+            "./enam_price_data.json",
+
+            JSON.stringify(
+                tableData,
+                null,
+                2
+            )
+
+        );
+
+        console.log(
+            "\n✅ enam_price_data.json updated successfully."
+        );
+
+        console.log(
+            `✅ Total records saved: ${tableData.length}`
+        );
+
+    } catch (error) {
 
     console.error(
-        "❌ ERROR:",
+        "\n❌ Data update failed:"
+    );
+
+    console.error(
         error.message
     );
 
-} finally {
+    console.log(
+        "\n⚠️ Existing JSON file was NOT modified."
+    );
 
-    await browser.close();
+    throw error;
 
 }
+}
+
+export { getautomated as updateMandiData };
