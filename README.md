@@ -1,4 +1,4 @@
-# 🌾 e-NAM Mandi Price API
+# 🌾 e-NAAM Mandi Price API
 
 A **Node.js + Express.js REST API** that fetches daily agricultural mandi prices from the **Government of India's data.gov.in API**, stores the data locally, and provides filtered commodity price information through an API.
 
