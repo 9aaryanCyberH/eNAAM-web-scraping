@@ -1,5 +1,5 @@
 import express from 'express';
-import enamdata from '../enam_price_data.json' assert { type: 'json' };
+import enamdata from './enam_price_data.json' with { type: 'json' };
 
 const router = express.Router();
 
