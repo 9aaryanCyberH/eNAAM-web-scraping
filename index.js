@@ -106,33 +106,39 @@ async function getautomated() {
 
         // Convert API data into your existing format
 
-        const tableData = records.map(item => ({
+      const tableData = records.map(item => ({
 
-            "State":
-                item.state || "",
+    "State":
+        item.state || "",
 
-            "APMC's":
-                item.market || "",
+    "District":
+        item.district || "",
 
-            "Commodity":
-                item.commodity || "",
+    "APMC's":
+        item.market || "",
 
-            "Min Price":
-                String(
-                    item.min_price ?? ""
-                ),
+    "Commodity":
+        item.commodity || "",
 
-            "Modal Price":
-                String(
-                    item.modal_price ?? ""
-                ),
+    "Arrival Date":
+        item.arrival_date || "",
 
-            "Max Price":
-                String(
-                    item.max_price ?? ""
-                )
+    "Min Price":
+        String(
+            item.min_price ?? ""
+        ),
 
-        }));
+    "Modal Price":
+        String(
+            item.modal_price ?? ""
+        ),
+
+    "Max Price":
+        String(
+            item.max_price ?? ""
+        )
+
+}));
 
         // Save the complete dataset
 
